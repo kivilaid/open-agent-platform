@@ -5,18 +5,24 @@ FROM node:20-alpine AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
+# Enable Corepack for Yarn 3
+RUN corepack enable
+
 # Copy package files
 COPY package.json yarn.lock ./
+COPY .yarnrc.yml ./
 COPY apps/web/package.json ./apps/web/
-COPY apps/docs/package.json ./apps/docs/
 COPY turbo.json ./
 
 # Install dependencies
-RUN yarn install --frozen-lockfile
+RUN yarn install --immutable --immutable-cache || yarn install
 
 # Stage 2: Builder
 FROM node:20-alpine AS builder
 WORKDIR /app
+
+# Enable Corepack for Yarn 3
+RUN corepack enable
 
 # Copy dependencies from previous stage
 COPY --from=deps /app/node_modules ./node_modules
@@ -60,8 +66,8 @@ USER nextjs
 # Expose port
 EXPOSE 3000
 
-ENV PORT 3000
-ENV NODE_ENV production
+ENV PORT=3000
+ENV NODE_ENV=production
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
