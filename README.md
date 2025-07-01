@@ -1,6 +1,8 @@
 # Open Agent Platform
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![CI](https://github.com/kivilaid/open-agent-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/kivilaid/open-agent-platform/actions/workflows/ci.yml)
+[![Docker](https://github.com/kivilaid/open-agent-platform/actions/workflows/docker-build.yml/badge.svg)](https://github.com/kivilaid/open-agent-platform/actions/workflows/docker-build.yml)
 [![Turborepo](https://img.shields.io/badge/Built%20with-Turborepo-EF4444.svg)](https://turborepo.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-15.3-black.svg)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue.svg)](https://www.typescriptlang.org/)
@@ -98,10 +100,49 @@ open-agent-platform/
 
 ### Docker Deployment
 
+The platform is available as a Docker image from GitHub Container Registry:
+
 ```bash
+# Pull the latest image
+docker pull ghcr.io/kivilaid/open-agent-platform:latest
+
+# Run with environment variables
+docker run -d \
+  --name open-agent-platform \
+  -p 3000:3000 \
+  -e NEXT_PUBLIC_SUPABASE_URL="your_supabase_url" \
+  -e NEXT_PUBLIC_SUPABASE_ANON_KEY="your_anon_key" \
+  -e SUPABASE_SERVICE_ROLE_KEY="your_service_role_key" \
+  -e NEXT_PUBLIC_DEPLOYMENTS='[{"id":"..."}]' \
+  ghcr.io/kivilaid/open-agent-platform:latest
+```
+
+### Docker Compose
+
+For a complete deployment stack with PostgreSQL and Redis:
+
+```bash
+# Using the provided docker-compose.yml
+docker compose up -d
+
+# Or build and run locally
 docker build -t open-agent-platform .
 docker run -p 3000:3000 --env-file .env.production open-agent-platform
 ```
+
+### CI/CD
+
+The repository includes GitHub Actions workflows for:
+
+- **Continuous Integration**: Automated linting, type checking, and builds on every PR
+- **Docker Builds**: Automatic Docker image builds and publishing to GitHub Container Registry
+- **Release Management**: Automated releases with Docker image tags
+
+Docker images are automatically built and published for:
+- Every push to `main` branch (tagged as `latest`)
+- Every push to `develop` branch (tagged as `develop`)
+- Every release tag (tagged with version number)
+- Every commit (tagged with SHA for testing)
 
 ### Vercel Deployment
 

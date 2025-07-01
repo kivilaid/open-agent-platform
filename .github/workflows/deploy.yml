@@ -1,0 +1,61 @@
+name: Deploy
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'production' }}
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set environment variables
+        run: |
+          if [ "${{ github.event.inputs.environment }}" = "production" ] || [ -z "${{ github.event.inputs.environment }}" ]; then
+            echo "DEPLOY_ENV=production" >> $GITHUB_ENV
+            echo "DEPLOY_TAG=${{ github.ref_name }}" >> $GITHUB_ENV
+          else
+            echo "DEPLOY_ENV=staging" >> $GITHUB_ENV
+            echo "DEPLOY_TAG=staging-${{ github.sha }}" >> $GITHUB_ENV
+          fi
+
+      - name: Deploy notification
+        run: |
+          echo "Deploying to ${{ env.DEPLOY_ENV }} environment"
+          echo "Using image tag: ${{ env.DEPLOY_TAG }}"
+          echo ""
+          echo "Docker image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.DEPLOY_TAG }}"
+          echo ""
+          echo "To pull and run this image:"
+          echo "docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.DEPLOY_TAG }}"
+          echo "docker run -d -p 3000:3000 --name open-agent-platform \\"
+          echo "  -e NEXT_PUBLIC_SUPABASE_URL=\$NEXT_PUBLIC_SUPABASE_URL \\"
+          echo "  -e NEXT_PUBLIC_SUPABASE_ANON_KEY=\$NEXT_PUBLIC_SUPABASE_ANON_KEY \\"
+          echo "  -e SUPABASE_SERVICE_ROLE_KEY=\$SUPABASE_SERVICE_ROLE_KEY \\"
+          echo "  ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.DEPLOY_TAG }}"
+
+      # Add your deployment steps here
+      # For example, deploying to Kubernetes, AWS ECS, Azure Container Instances, etc.
+      # This is a placeholder that shows how to structure the deployment workflow

@@ -1,0 +1,65 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create Release Notes
+        id: release_notes
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          
+          # Generate release notes
+          cat << EOF > release_notes.md
+          ## Open Agent Platform $VERSION
+          
+          ### Docker Image
+          
+          Pull the Docker image:
+          \`\`\`bash
+          docker pull ghcr.io/${{ github.repository }}:$VERSION
+          docker pull ghcr.io/${{ github.repository }}:latest
+          \`\`\`
+          
+          ### Running the Container
+          
+          \`\`\`bash
+          docker run -d \\
+            --name open-agent-platform \\
+            -p 3000:3000 \\
+            -e NEXT_PUBLIC_SUPABASE_URL=your_supabase_url \\
+            -e NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key \\
+            -e SUPABASE_SERVICE_ROLE_KEY=your_service_role_key \\
+            ghcr.io/${{ github.repository }}:$VERSION
+          \`\`\`
+          
+          ### Docker Compose
+          
+          See the included \`docker-compose.yml\` for a complete deployment stack.
+          
+          ### What's Changed
+          
+          See the [full changelog](https://github.com/${{ github.repository }}/compare/$(git describe --tags --abbrev=0 HEAD^)...$VERSION)
+          EOF
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          body_path: release_notes.md
+          draft: false
+          prerelease: ${{ contains(github.ref, '-rc') || contains(github.ref, '-beta') || contains(github.ref, '-alpha') }}
+          generate_release_notes: true
+          token: ${{ secrets.GITHUB_TOKEN }}

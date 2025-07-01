@@ -32,15 +32,26 @@ COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
 COPY . .
 
 # Build arguments for environment variables
-ARG NEXT_PUBLIC_BASE_API_URL
-ARG NEXT_PUBLIC_SUPABASE_URL
-ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
-ARG NEXT_PUBLIC_DEPLOYMENTS
-ARG NEXT_PUBLIC_GOOGLE_AUTH_DISABLED
-ARG NEXT_PUBLIC_USE_LANGSMITH_AUTH
-ARG NEXT_PUBLIC_RAG_API_URL
-ARG NEXT_PUBLIC_MCP_SERVER_URL
-ARG NEXT_PUBLIC_MCP_AUTH_REQUIRED
+ARG NEXT_PUBLIC_BASE_API_URL="http://localhost:3000/api"
+ARG NEXT_PUBLIC_SUPABASE_URL="https://placeholder.supabase.co"
+ARG NEXT_PUBLIC_SUPABASE_ANON_KEY="placeholder-key"
+ARG NEXT_PUBLIC_DEPLOYMENTS='[{"id":"default","deploymentUrl":"http://localhost:8123","tenantId":"default","name":"Default Agent","isDefault":true,"defaultGraphId":"agent"}]'
+ARG NEXT_PUBLIC_GOOGLE_AUTH_DISABLED="false"
+ARG NEXT_PUBLIC_USE_LANGSMITH_AUTH="false"
+ARG NEXT_PUBLIC_RAG_API_URL=""
+ARG NEXT_PUBLIC_MCP_SERVER_URL=""
+ARG NEXT_PUBLIC_MCP_AUTH_REQUIRED="false"
+
+# Set environment variables for build
+ENV NEXT_PUBLIC_BASE_API_URL=$NEXT_PUBLIC_BASE_API_URL
+ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
+ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
+ENV NEXT_PUBLIC_DEPLOYMENTS=$NEXT_PUBLIC_DEPLOYMENTS
+ENV NEXT_PUBLIC_GOOGLE_AUTH_DISABLED=$NEXT_PUBLIC_GOOGLE_AUTH_DISABLED
+ENV NEXT_PUBLIC_USE_LANGSMITH_AUTH=$NEXT_PUBLIC_USE_LANGSMITH_AUTH
+ENV NEXT_PUBLIC_RAG_API_URL=$NEXT_PUBLIC_RAG_API_URL
+ENV NEXT_PUBLIC_MCP_SERVER_URL=$NEXT_PUBLIC_MCP_SERVER_URL
+ENV NEXT_PUBLIC_MCP_AUTH_REQUIRED=$NEXT_PUBLIC_MCP_AUTH_REQUIRED
 
 # Build the application
 RUN yarn build --filter=@open-agent-platform/web
@@ -54,9 +65,8 @@ RUN addgroup -g 1001 -S nodejs
 RUN adduser -S nextjs -u 1001
 
 # Copy necessary files
-COPY --from=builder /app/apps/web/public ./apps/web/public
-COPY --from=builder /app/apps/web/.next/standalone ./
-COPY --from=builder /app/apps/web/.next/static ./apps/web/.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/static ./apps/web/.next/static
 
 # Set permissions
 RUN chown -R nextjs:nodejs /app
