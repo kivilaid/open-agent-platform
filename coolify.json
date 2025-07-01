@@ -1,0 +1,152 @@
+{
+  "version": "1.0",
+  "project": {
+    "name": "Open Agent Platform",
+    "description": "No-code platform for building and deploying AI agents"
+  },
+  "services": {
+    "web": {
+      "name": "OAP Web",
+      "type": "application",
+      "build": {
+        "type": "dockerfile",
+        "dockerfile": "./Dockerfile",
+        "context": ".",
+        "args": {
+          "NEXT_PUBLIC_BASE_API_URL": "${NEXT_PUBLIC_BASE_API_URL}",
+          "NEXT_PUBLIC_SUPABASE_URL": "${NEXT_PUBLIC_SUPABASE_URL}",
+          "NEXT_PUBLIC_SUPABASE_ANON_KEY": "${NEXT_PUBLIC_SUPABASE_ANON_KEY}",
+          "NEXT_PUBLIC_DEPLOYMENTS": "${NEXT_PUBLIC_DEPLOYMENTS}",
+          "NEXT_PUBLIC_GOOGLE_AUTH_DISABLED": "${NEXT_PUBLIC_GOOGLE_AUTH_DISABLED}",
+          "NEXT_PUBLIC_USE_LANGSMITH_AUTH": "${NEXT_PUBLIC_USE_LANGSMITH_AUTH}",
+          "NEXT_PUBLIC_RAG_API_URL": "${NEXT_PUBLIC_RAG_API_URL}",
+          "NEXT_PUBLIC_MCP_SERVER_URL": "${NEXT_PUBLIC_MCP_SERVER_URL}",
+          "NEXT_PUBLIC_MCP_AUTH_REQUIRED": "${NEXT_PUBLIC_MCP_AUTH_REQUIRED}"
+        }
+      },
+      "ports": [
+        {
+          "container": 3000,
+          "host": 3000,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": {
+        "NODE_ENV": "production",
+        "PORT": "3000"
+      },
+      "health_check": {
+        "enabled": true,
+        "path": "/api/health",
+        "port": 3000,
+        "interval": 30,
+        "timeout": 10,
+        "retries": 3,
+        "start_period": 40
+      },
+      "resources": {
+        "limits": {
+          "memory": "1Gi",
+          "cpu": "1000m"
+        },
+        "requests": {
+          "memory": "512Mi",
+          "cpu": "250m"
+        }
+      },
+      "scaling": {
+        "min_replicas": 1,
+        "max_replicas": 5,
+        "target_cpu": 70,
+        "target_memory": 80
+      },
+      "domains": [
+        {
+          "domain": "${DOMAIN}",
+          "ssl": {
+            "enabled": true,
+            "redirect_http": true
+          }
+        }
+      ]
+    },
+    "postgres": {
+      "name": "PostgreSQL",
+      "type": "database",
+      "enabled": "${ENABLE_POSTGRES:-false}",
+      "image": "postgres:15-alpine",
+      "ports": [
+        {
+          "container": 5432,
+          "host": 5432,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": {
+        "POSTGRES_USER": "${POSTGRES_USER:-postgres}",
+        "POSTGRES_PASSWORD": "${POSTGRES_PASSWORD}",
+        "POSTGRES_DB": "${POSTGRES_DB:-oap}"
+      },
+      "volumes": [
+        {
+          "name": "postgres_data",
+          "path": "/var/lib/postgresql/data",
+          "size": "10Gi"
+        }
+      ],
+      "health_check": {
+        "enabled": true,
+        "command": ["pg_isready", "-U", "postgres"],
+        "interval": 10,
+        "timeout": 5,
+        "retries": 5
+      }
+    },
+    "redis": {
+      "name": "Redis Cache",
+      "type": "cache",
+      "enabled": "${ENABLE_REDIS:-false}",
+      "image": "redis:7-alpine",
+      "command": ["redis-server", "--appendonly", "yes"],
+      "ports": [
+        {
+          "container": 6379,
+          "host": 6379,
+          "protocol": "tcp"
+        }
+      ],
+      "volumes": [
+        {
+          "name": "redis_data",
+          "path": "/data",
+          "size": "1Gi"
+        }
+      ],
+      "health_check": {
+        "enabled": true,
+        "command": ["redis-cli", "ping"],
+        "interval": 10,
+        "timeout": 5,
+        "retries": 5
+      }
+    }
+  },
+  "networks": {
+    "default": {
+      "name": "oap-network",
+      "driver": "bridge"
+    }
+  },
+  "secrets": [
+    "NEXT_PUBLIC_SUPABASE_URL",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    "NEXT_PUBLIC_DEPLOYMENTS",
+    "POSTGRES_PASSWORD",
+    "LANGSMITH_API_KEY"
+  ],
+  "deploy": {
+    "auto_deploy": true,
+    "branch": "main",
+    "webhook_secret": "${WEBHOOK_SECRET}"
+  }
+}

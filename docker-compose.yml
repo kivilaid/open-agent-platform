@@ -1,0 +1,97 @@
+version: '3.8'
+
+services:
+  # Open Agent Platform Web Application
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_BASE_API_URL: ${NEXT_PUBLIC_BASE_API_URL:-http://localhost:3000/api}
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+        NEXT_PUBLIC_DEPLOYMENTS: ${NEXT_PUBLIC_DEPLOYMENTS}
+        NEXT_PUBLIC_GOOGLE_AUTH_DISABLED: ${NEXT_PUBLIC_GOOGLE_AUTH_DISABLED:-false}
+        NEXT_PUBLIC_USE_LANGSMITH_AUTH: ${NEXT_PUBLIC_USE_LANGSMITH_AUTH:-false}
+        NEXT_PUBLIC_RAG_API_URL: ${NEXT_PUBLIC_RAG_API_URL}
+        NEXT_PUBLIC_MCP_SERVER_URL: ${NEXT_PUBLIC_MCP_SERVER_URL}
+        NEXT_PUBLIC_MCP_AUTH_REQUIRED: ${NEXT_PUBLIC_MCP_AUTH_REQUIRED:-false}
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); })"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - oap-network
+
+  # Optional: PostgreSQL for local Supabase
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-oap}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - oap-network
+    profiles:
+      - with-db
+
+  # Optional: Redis for caching
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - oap-network
+    profiles:
+      - with-cache
+
+  # Optional: Nginx reverse proxy
+  nginx:
+    image: nginx:alpine
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - web
+    restart: unless-stopped
+    networks:
+      - oap-network
+    profiles:
+      - with-proxy
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  oap-network:
+    driver: bridge
