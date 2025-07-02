@@ -66,6 +66,9 @@ RUN cd apps/web && yarn build || (echo "Build failed" && cat .next/build-error.l
 FROM node:20-alpine AS runner
 WORKDIR /app
 
+# Install wget for health checks
+RUN apk add --no-cache wget
+
 # Add non-root user
 RUN addgroup -g 1001 -S nodejs
 RUN adduser -S nextjs -u 1001
@@ -87,7 +90,7 @@ ENV NODE_ENV=production
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3000/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); })"
+  CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/api/health || exit 1
 
 # Start the application
 CMD ["node", "apps/web/server.js"]
