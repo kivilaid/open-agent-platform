@@ -56,8 +56,11 @@ ENV NEXT_PUBLIC_MCP_AUTH_REQUIRED=$NEXT_PUBLIC_MCP_AUTH_REQUIRED
 # Copy build-specific Next.js config
 RUN cp apps/web/next.config.build.mjs apps/web/next.config.mjs
 
-# Build the application
-RUN yarn build --filter=@open-agent-platform/web
+# Build the application with increased memory
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+# Set build-time environment variables to prevent errors
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN cd apps/web && yarn build || (echo "Build failed" && cat .next/build-error.log 2>/dev/null && exit 1)
 
 # Stage 3: Runner
 FROM node:20-alpine AS runner

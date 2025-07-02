@@ -10,14 +10,9 @@ const nextConfig = {
   },
   // Output as standalone for Docker
   output: 'standalone',
-  // Disable static generation for auth-required pages
-  experimental: {
-    missingSuspenseWithCSRBailout: false,
-  },
-  // Skip static generation for pages that require runtime configuration
-  async generateStaticParams() {
-    return [];
-  },
+  // Optimize for Docker builds
+  compress: false, // Disable compression during build
+  productionBrowserSourceMaps: false, // Skip source maps
 };
 
 export default nextConfig;
