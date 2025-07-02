@@ -3,6 +3,9 @@
 import { AuthDebug } from "@/components/auth/debug";
 import { AuthProvider } from "@/providers/Auth";
 
+// Force dynamic rendering for this page
+export const dynamic = 'force-dynamic';
+
 export default function DebugAuthPage() {
   return (
     <AuthProvider>

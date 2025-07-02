@@ -53,6 +53,9 @@ ENV NEXT_PUBLIC_RAG_API_URL=$NEXT_PUBLIC_RAG_API_URL
 ENV NEXT_PUBLIC_MCP_SERVER_URL=$NEXT_PUBLIC_MCP_SERVER_URL
 ENV NEXT_PUBLIC_MCP_AUTH_REQUIRED=$NEXT_PUBLIC_MCP_AUTH_REQUIRED
 
+# Copy build-specific Next.js config
+RUN cp apps/web/next.config.build.mjs apps/web/next.config.mjs
+
 # Build the application
 RUN yarn build --filter=@open-agent-platform/web
 

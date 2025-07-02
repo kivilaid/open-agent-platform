@@ -14,6 +14,10 @@ const nextConfig = {
   experimental: {
     missingSuspenseWithCSRBailout: false,
   },
+  // Skip static generation for pages that require runtime configuration
+  async generateStaticParams() {
+    return [];
+  },
 };
 
 export default nextConfig;

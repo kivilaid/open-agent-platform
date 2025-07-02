@@ -10,11 +10,10 @@ import {
 import { getSupabaseClient } from "./supabase-client";
 
 export class SupabaseAuthProvider implements AuthProvider {
-  private supabase;
+  private supabase: ReturnType<typeof getSupabaseClient> | null = null;
   private options: AuthProviderOptions;
 
   constructor(options: AuthProviderOptions = {}) {
-    this.supabase = getSupabaseClient();
     this.options = {
       shouldPersistSession: true,
       redirectUrl:
@@ -23,6 +22,13 @@ export class SupabaseAuthProvider implements AuthProvider {
           : undefined,
       ...options,
     };
+  }
+
+  private getClient() {
+    if (!this.supabase) {
+      this.supabase = getSupabaseClient();
+    }
+    return this.supabase;
   }
 
   // Helper to convert Supabase User to our User interface
@@ -86,7 +92,7 @@ export class SupabaseAuthProvider implements AuthProvider {
 
   async signUp(credentials: AuthCredentials) {
     try {
-      const { data, error } = await this.supabase.auth.signUp({
+      const { data, error } = await this.getClient().auth.signUp({
         email: credentials.email,
         password: credentials.password,
         options: {
@@ -113,7 +119,7 @@ export class SupabaseAuthProvider implements AuthProvider {
 
   async signIn(credentials: AuthCredentials) {
     try {
-      const { data, error } = await this.supabase.auth.signInWithPassword({
+      const { data, error } = await this.getClient().auth.signInWithPassword({
         email: credentials.email,
         password: credentials.password,
       });
@@ -136,7 +142,7 @@ export class SupabaseAuthProvider implements AuthProvider {
 
   async signInWithGoogle() {
     try {
-      const { data, error } = await this.supabase.auth.signInWithOAuth({
+      const { data, error } = await this.getClient().auth.signInWithOAuth({
         provider: "google",
         options: {
           redirectTo: this.options.redirectUrl,
@@ -170,7 +176,7 @@ export class SupabaseAuthProvider implements AuthProvider {
 
   async signOut() {
     try {
-      const { error } = await this.supabase.auth.signOut();
+      const { error } = await this.getClient().auth.signOut();
       if (error) throw error;
 
       return { error: null };
@@ -181,7 +187,7 @@ export class SupabaseAuthProvider implements AuthProvider {
 
   async getSession() {
     try {
-      const { data, error } = await this.supabase.auth.getSession();
+      const { data, error } = await this.getClient().auth.getSession();
 
       if (error) throw error;
 
@@ -194,7 +200,7 @@ export class SupabaseAuthProvider implements AuthProvider {
 
   async refreshSession() {
     try {
-      const { data, error } = await this.supabase.auth.refreshSession();
+      const { data, error } = await this.getClient().auth.refreshSession();
 
       if (error) throw error;
 
@@ -207,7 +213,7 @@ export class SupabaseAuthProvider implements AuthProvider {
 
   async getCurrentUser() {
     try {
-      const { data, error } = await this.supabase.auth.getUser();
+      const { data, error } = await this.getClient().auth.getUser();
 
       if (error) throw error;
 
@@ -248,7 +254,7 @@ export class SupabaseAuthProvider implements AuthProvider {
       };
 
       const { data, error } =
-        await this.supabase.auth.updateUser(supabaseAttributes);
+        await this.getClient().auth.updateUser(supabaseAttributes);
 
       if (error) throw error;
 
@@ -266,7 +272,7 @@ export class SupabaseAuthProvider implements AuthProvider {
 
   async resetPassword(email: string) {
     try {
-      const { error } = await this.supabase.auth.resetPasswordForEmail(email, {
+      const { error } = await this.getClient().auth.resetPasswordForEmail(email, {
         redirectTo: `${this.options.redirectUrl}/reset-password`,
       });
 
@@ -280,7 +286,7 @@ export class SupabaseAuthProvider implements AuthProvider {
 
   async updatePassword(newPassword: string) {
     try {
-      const { error } = await this.supabase.auth.updateUser({
+      const { error } = await this.getClient().auth.updateUser({
         password: newPassword,
       });
 
@@ -293,7 +299,7 @@ export class SupabaseAuthProvider implements AuthProvider {
   }
 
   onAuthStateChange(callback: AuthStateChangeCallback) {
-    const { data } = this.supabase.auth.onAuthStateChange((_event, session) => {
+    const { data } = this.getClient().auth.onAuthStateChange((_event, session) => {
       callback(this.formatSession(session));
     });
 
